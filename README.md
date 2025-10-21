@@ -59,7 +59,11 @@ Each `SensorData` has a `platformType` so you know the sensor data comes from An
 - Just like sensors, create a list of states that you need to observe.
 
 ```
-val states = listOf(StateType.APP_VISIBILITY,StateType.SCREEN_STATE)
+val states = listOf(
+    StateType.APP_VISIBILITY,
+    StateType.SCREEN_STATE,
+    StateType.CONNECTIVITY // New: WiFi, Cellular, Bluetooth
+)
 ```
 
 - Add observers.
@@ -67,8 +71,21 @@ val states = listOf(StateType.APP_VISIBILITY,StateType.SCREEN_STATE)
 ```
 KState.addObserver(types = states).collect{ stateUpdate->
    when(stateUpdate){
-	is StateUpdate.Data-> // Get state data here
-	is StateUpdate.Error-> // Get errors here
+       is StateUpdate.Data -> when(stateUpdate.data){
+           is StateData.AppVisibilityStatus -> {
+               // stateUpdate.data.appVisibility
+           }
+           is StateData.ScreenStatus -> {
+               // stateUpdate.data.screenState
+           }
+           is StateData.ConnectivityStatus -> {
+               // stateUpdate.data.connectionType (WIFI, CELLULAR, BLUETOOTH)
+               // stateUpdate.data.status (CONNECTED, DISCONNECTED, CONNECTING)
+           }
+       }
+       is StateUpdate.Error -> {
+           // some states may be unsupported on a platform (e.g., iOS screen state)
+       }
    }
 }
 ```
