@@ -37,6 +37,12 @@ import org.kmp.shots.k.sensor.PermissionStatus
 import org.kmp.shots.k.sensor.PermissionType
 import org.kmp.shots.k.sensor.SensorData
 import org.kmp.shots.k.sensor.SensorType
+import org.kmp.shots.k.sensor.KState
+import org.kmp.shots.k.sensor.StateType
+import org.kmp.shots.k.sensor.StateUpdate
+import org.kmp.shots.k.sensor.StateData
+import org.kmp.shots.k.sensor.ConnectivityType
+import org.kmp.shots.k.sensor.ConnectionStatus
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,7 +59,8 @@ private enum class Page(val title: String) {
     Location("Location"),
     Motion("Motion"),
     Environment("Environment"),
-    Device("Device")
+    Device("Device"),
+    Connectivity("Connectivity")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,6 +84,7 @@ private fun App() {
                 Page.Motion -> MotionPage()
                 Page.Environment -> EnvironmentPage()
                 Page.Device -> DevicePage()
+                Page.Connectivity -> ConnectivityPage()
             }
         }
     }
@@ -257,6 +265,58 @@ private fun DevicePage() {
                 null -> Text("No data yet or sensor not available")
                 else -> {}
             }
+            Divider()
+        }
+    }
+}
+
+@Composable
+private fun ConnectivityPage() {
+    val states = remember { listOf(StateType.CONNECTIVITY) }
+
+    var wifiStatus by remember { mutableStateOf<ConnectionStatus?>(null) }
+    var cellularStatus by remember { mutableStateOf<ConnectionStatus?>(null) }
+    var bluetoothStatus by remember { mutableStateOf<ConnectionStatus?>(null) }
+    var lastError by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        KState.addObserver(types = states)
+            .collect { update ->
+                when (update) {
+                    is StateUpdate.Data -> {
+                        val data = update.data
+                        if (data is StateData.ConnectivityStatus) {
+                            when (data.connectionType) {
+                                ConnectivityType.WIFI -> wifiStatus = data.status
+                                ConnectivityType.CELLULAR -> cellularStatus = data.status
+                                ConnectivityType.BLUETOOTH -> bluetoothStatus = data.status
+                            }
+                        }
+                    }
+                    is StateUpdate.Error -> lastError = update.exception.message ?: update.exception.toString()
+                }
+            }
+    }
+    DisposableEffect(Unit) { onDispose { KState.removeObserver(states) } }
+
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        item { Text("Connectivity", style = MaterialTheme.typography.titleLarge) }
+        val err = lastError
+        if (err != null) item { Text("Error: $err", color = MaterialTheme.colorScheme.error) }
+
+        item {
+            Text("Wi-Fi", style = MaterialTheme.typography.titleMedium)
+            Text(text = "status=${wifiStatus?.name ?: "UNKNOWN"}")
+            Divider()
+        }
+        item {
+            Text("Cellular", style = MaterialTheme.typography.titleMedium)
+            Text(text = "status=${cellularStatus?.name ?: "UNKNOWN"}")
+            Divider()
+        }
+        item {
+            Text("Bluetooth", style = MaterialTheme.typography.titleMedium)
+            Text(text = "status=${bluetoothStatus?.name ?: "UNKNOWN"}")
             Divider()
         }
     }
