@@ -3,7 +3,8 @@ package org.kmp.shots.k.sensor
 
 enum class StateType{
     SCREEN_STATE,
-    APP_VISIBILITY
+    APP_VISIBILITY,
+    CONNECTIVITY
 }
 
 enum class AppVisibility{
@@ -15,6 +16,13 @@ enum class ScreenState{
     ON, OFF
 }
 
+enum class ConnectivityType{
+    WIFI, CELLULAR, BLUETOOTH
+}
+
+enum class ConnectionStatus{
+    CONNECTED, DISCONNECTED, CONNECTING
+}
 
 sealed class StateData{
     data class AppVisibilityStatus(
@@ -27,4 +35,9 @@ sealed class StateData{
         val platformType: PlatformType
     ): StateData()
 
+    data class ConnectivityStatus(
+        val connectionType: ConnectivityType,
+        val status: ConnectionStatus,
+        val platformType: PlatformType
+    ): StateData()
 }
